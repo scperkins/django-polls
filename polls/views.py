@@ -25,6 +25,9 @@ class ResultsView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
 
+    def get_queryset(self):
+        return Question.objects.filter(pub_date__lte=timezone.now())
+
 def vote(request, question_id):
     p = get_object_or_404(Question, pk=question_id)
     try:
