@@ -10,9 +10,14 @@ class IndexView(generic.ListView):
     context_object_name = 'latest_question_list'
 
     def get_queryset(self):
-        """Return the last five published questions (not including those set to be published in the future)."""
-        return Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
-
+        """As long as the questions have choice, return the last five published questions (not including those set to be published in the future)."""
+        questions =  Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
+        has_choices = []
+        for question in questions:
+            if question.choice_set.all():
+                has_choices.append(question)
+        return has_choices
+        
 class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
@@ -25,9 +30,6 @@ class ResultsView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
     
-    def get_queryset(self):
-        return Question.objects.filter(pub_date__lte=timezone.now())
-
     def get_queryset(self):
         return Question.objects.filter(pub_date__lte=timezone.now())
 

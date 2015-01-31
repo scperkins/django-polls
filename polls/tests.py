@@ -1,7 +1,7 @@
 import datetime
 from django.utils import timezone
 from django.test import TestCase
-from polls.models import Question
+from polls.models import Question, Choice
 from django.core.urlresolvers import reverse
 
 # Create your tests here.
@@ -38,6 +38,10 @@ def create_question(question_text, days):
     time = timezone.now() + datetime.timedelta(days=days)
     return Question.objects.create(question_text=question_text, pub_date=time)
 
+def create_choice(choice_text, question):
+    """Creates a choice with the given choice_text and the given question. """
+    return Choice.object.create(choice_text=choice_text, question=question)
+
 class QuestionViewTests(TestCase):
     def test_index_with_no_questions(self):
         # If no question exist, an appropriate message should be displayed.
@@ -59,7 +63,7 @@ class QuestionViewTests(TestCase):
         self.assertContains(response, "No polls are available.", status_code=200)
         self.assertQuerysetEqual(response.context['latest_question_list'], [])
 
-    def test_index_vie_with_future_question_and_past_question(self):
+    def test_index_view_with_future_question_and_past_question(self):
         # Even if both past and future questions exist, only past questions should be displayed.
         create_question(question_text = "Past question.", days=-30)
         create_question(question_text = "Future question.", days=30)
@@ -74,6 +78,13 @@ class QuestionViewTests(TestCase):
         self.assertQuerysetEqual(response.context['latest_question_list'], 
                 ['<Question: Past question 2.>', '<Question: Past question 1.>']
         )
+    
+    def test_index_view_no_choices(self):
+        question = create_question(question_text="Question with no choices", days=-2)
+        create_choice(choice_text="hey you shouldn't see this", question=question.id)
+        response = self.client.get(reverse('polls:index'))
+        self.assertQuerysetEqual(response.context['latest_question_list'], [])
+        
 
 class QuestionIndexDetailTests(TestCase):
     def test_detail_view_with_a_future_question(self):
