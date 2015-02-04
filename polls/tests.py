@@ -40,7 +40,7 @@ def create_question(question_text, days):
 
 def create_choice(choice_text, question):
     """Creates a choice with the given choice_text and the given question. """
-    return Choice.object.create(choice_text=choice_text, question=question)
+    return Choice.objects.create(choice_text=choice_text, question=question)
 
 class QuestionViewTests(TestCase):
     def test_index_with_no_questions(self):
@@ -52,7 +52,8 @@ class QuestionViewTests(TestCase):
 
     def test_index_view_with_a_past_question(self):
         # Questions with a pub_date in the past should be displayed on the index page.
-        create_question(question_text="Past question.", days=-30)
+        question = create_question(question_text="Past question.", days=-30)
+        create_choice(choice_text='Past choice', question=question)
         response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Past question.>'])
 
@@ -61,29 +62,34 @@ class QuestionViewTests(TestCase):
         create_question(question_text="Future question.", days=30)
         response = self.client.get(reverse('polls:index'))
         self.assertContains(response, "No polls are available.", status_code=200)
-        self.assertQuerysetEqual(response.context['latest_question_list'], [])
+        #self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Future question.>'])
 
     def test_index_view_with_future_question_and_past_question(self):
         # Even if both past and future questions exist, only past questions should be displayed.
-        create_question(question_text = "Past question.", days=-30)
-        create_question(question_text = "Future question.", days=30)
+        question1 = create_question(question_text = "Past question.", days=-30)
+        question2 = create_question(question_text = "Future question.", days=30)
+        create_choice(choice_text="Past choice", question=question1)
+        create_choice(choice_text="Future choice", question=question2)
         response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Past question.>'])
 
     def test_index_view_with_two_past_questions(self):
         # The questions index page may display multiple questions.
-        create_question(question_text="Past question 1.", days=-30)
-        create_question(question_text="Past question 2.", days=-5)
+        question1 = create_question(question_text="Past question 1.", days=-30)
+        question2 = create_question(question_text="Past question 2.", days=-5)
+        create_choice(choice_text="Past choice", question=question1)
+        create_choice(choice_text="Past choice 2", question=question2)
         response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(response.context['latest_question_list'], 
                 ['<Question: Past question 2.>', '<Question: Past question 1.>']
         )
     
     def test_index_view_no_choices(self):
+        #import pdb;pdb.set_trace()
         question = create_question(question_text="Question with no choices", days=-2)
-        create_choice(choice_text="hey you shouldn't see this", question=question.id)
+        create_choice(choice_text="", question=question)
         response = self.client.get(reverse('polls:index'))
-        self.assertQuerysetEqual(response.context['latest_question_list'], [])
+        self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Question with no choices>'])
         
 
 class QuestionIndexDetailTests(TestCase):
